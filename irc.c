@@ -2,6 +2,8 @@
 #include "irc.h"
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+
 
 int
 irc_connect(irc_t * irc, const char *server, const char *port)
@@ -72,8 +74,8 @@ irc_handle_data(irc_t * irc)
 int
 irc_parse_action(irc_t * irc)
 {
-	char irc_nick[128];
-	char irc_msg[512];
+	// char irc_nick[128];
+	// char irc_msg[512];
 	if (strncmp(irc->servbuf, "PING :", 6) == 0) {
 		return irc_pong(irc->s, &irc->servbuf[6]);
 	}
@@ -259,8 +261,10 @@ irc_log_message(irc_t * irc, const char *nick, const char *message)
 	fprintf(irc->file, "%s - [%s] <%s> %s\n", irc->channel, timestring,
 		nick, message);
 	fflush(irc->file);
-} void
+	return 0;
+}
 
+void
 irc_close(irc_t * irc)
 {
 	close(irc->s);
