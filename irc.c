@@ -3,6 +3,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <malloc.h>
+#include <string.h>
 
 
 int
@@ -18,7 +20,13 @@ irc_connect(irc_t * irc, const char *server, const char *port)
 int
 irc_login(irc_t * irc, const char *nick)
 {
-	return irc_reg(irc->s, nick, "laas", "SimpleBot");
+	int ret;
+
+	ret = irc_reg(irc->s, nick, "laas", "SimpleBot");
+	if (ret > 0) {
+		irc->nick = strdup(nick);
+	}
+	return ret;
 }
 
 int
@@ -146,14 +154,18 @@ irc_set_output(irc_t * irc, const char *file)
 int
 irc_reply_message(irc_t * irc, char *irc_nick, char *msg)
 {
-	// Checks if someone calls on the bot.
-	if (*msg != '!')
-		return 0;
 	char *command;
 	char *arg;
+	char buf[64];
+	int s;
+
+	snprintf(buf, sizeof(buf)-1, "%s:", irc->nick);
+	s = strlen(buf);
+        if (strncmp(msg, buf, s) != 0)
+		return 0;
 
 	// Gets command
-	command = strtok(&msg[1], " ");
+	command = strtok(&msg[s], " ");
 	arg = strtok(NULL, "");
 	if (arg != NULL)
 		while (*arg == ' ')
@@ -166,7 +178,7 @@ irc_reply_message(irc_t * irc, char *irc_nick, char *msg)
 	}
 
 	else if (strcmp(command, "echo") == 0) {
-		if (irc_msg(irc->s, irc->channel, msg) < 0)
+		if (irc_msg(irc->s, irc->channel, arg) < 0)
 			return -1;
 	}
 
