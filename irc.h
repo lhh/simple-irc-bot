@@ -3,12 +3,12 @@
 
 #include <stdio.h>
 typedef struct {
-	int s;
 	FILE *file;
-	char channel[256];
 	char *nick;
+	char channel[256];
 	char servbuf[512];
 	int bufptr;
+	int s;
 } irc_t;
 int irc_connect(irc_t * irc, const char *server, const char *port);
 int irc_login(irc_t * irc, const char *nick);
