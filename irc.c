@@ -83,9 +83,11 @@ int
 irc_parse_action(irc_t * irc)
 {
 	char *ptr;
-	int privmsg = 0;
 	char irc_nick[128];
 	char irc_msg[512];
+	int privmsg = 0;
+	int ret;
+
 	*irc_nick = '\0';
 	*irc_msg = '\0';
 
@@ -134,9 +136,11 @@ irc_parse_action(irc_t * irc)
 		}
 	}
 	if (privmsg == 1 && strlen(irc_nick) > 0 && strlen(irc_msg) > 0) {
-		irc_log_message(irc, irc_nick, irc_msg);
-		if (irc_reply_message(irc, irc_nick, irc_msg) < 0)
+		ret = irc_reply_message(irc, irc_nick, irc_msg);
+		if (ret < 0)
 			return -1;
+		else if (ret > 0)
+			irc_log_message(irc, irc_nick, irc_msg);
 	}
 
 	return 0;
@@ -157,7 +161,7 @@ irc_reply_message(irc_t * irc, char *irc_nick, char *msg)
 	char *command;
 	char *arg;
 	char buf[64];
-	int s;
+	int s, ret = 0;
 
 	snprintf(buf, sizeof(buf)-1, "%s:", irc->nick);
 	s = strlen(buf);
@@ -175,14 +179,14 @@ irc_reply_message(irc_t * irc, char *irc_nick, char *msg)
 	if (strcmp(command, "ping") == 0) {
 		if (irc_msg(irc->s, irc->channel, "pong") < 0)
 			return -1;
-	}
-
-	else if (strcmp(command, "echo") == 0) {
+		ret = 1;
+	} else if (strcmp(command, "echo") == 0) {
 		if (irc_msg(irc->s, irc->channel, arg) < 0)
 			return -1;
+		ret = 1;
 	}
 
-	return 0;
+	return ret;
 }
 
 int

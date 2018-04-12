@@ -18,7 +18,7 @@ main(int argc, char **argv)
 		goto exit_err;
 	}
 
-	if (irc_join_channel(&irc, "#rhos-delivery") < 0) {
+	if (irc_join_channel(&irc, "#lontest") < 0) {
 		fprintf(stderr, "Couldn't join channel.\n");
 		goto exit_err;
 	}
