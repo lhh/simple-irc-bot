@@ -6,19 +6,19 @@ main(int argc, char **argv)
 {
 	irc_t irc;
 
-	if (irc_connect(&irc, "devserv.devel.redhat.com", "6667") < 0) {
+	if (irc_connect(&irc, "irc.bos.redhat.com", "6667") < 0) {
 		fprintf(stderr, "Connection failed.\n");
 		goto exit_err;
 	}
 
 	irc_set_output(&irc, "/dev/stdout");
 
-	if (irc_login(&irc, "maister_") < 0) {
+	if (irc_login(&irc, "laas") < 0) {
 		fprintf(stderr, "Couldn't log in.\n");
 		goto exit_err;
 	}
 
-	if (irc_join_channel(&irc, "#umgz") < 0) {
+	if (irc_join_channel(&irc, "#rhos-delivery") < 0) {
 		fprintf(stderr, "Couldn't join channel.\n");
 		goto exit_err;
 	}
