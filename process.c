@@ -39,7 +39,7 @@ process_done(irc_t *irc)
 
 
 void
-run_process(irc_t *irc, char *irc_nick, char *name, char *command, char *arg)
+run_process(irc_t *irc, char *irc_nick, command_t *cmd, char *arg)
 {
 	char cmdline[512];
 	regex_t rx;
@@ -52,28 +52,52 @@ run_process(irc_t *irc, char *irc_nick, char *name, char *command, char *arg)
 		irc_msg(irc->s, irc->channel, cmdline);
 		return;
 	}
-		
-	printf("command: %s arg: \'%s\'\n", command, arg);
 
-        regcomp(&rx, "^[a-zA-Z0-9_,\\.\\-]+$", REG_EXTENDED);
-        if (regexec(&rx, arg, 0, NULL, 0)) {
-		return;
-        }
+	if (strstr(cmd->action, "%s")) {
+		if (arg == NULL) {
+			snprintf(cmdline, sizeof(cmdline), "%s: \'%s\' requires an argument",
+				irc_nick, cmd->name);
+			irc_msg(irc->s, irc->channel, cmdline);
+			return;
+		}
 
-	snprintf(cmdline, sizeof(cmdline)-1, command, arg);
+		/* printf("command: %s arg: \'%s\'\n", cmd->name, arg); */
+		if (strlen(cmd->regex)) {
+			if (regcomp(&rx, cmd->regex, REG_EXTENDED) != 0) {
+				snprintf(cmdline, sizeof(cmdline), "%s: Config regex error\n",
+					irc_nick);
+				irc_msg(irc->s, irc->channel, cmdline);
+				return;
+			}
+		} else {
+			/* default */
+			regcomp(&rx, "^[a-zA-Z0-9_,\\.\\-]+$", REG_EXTENDED);
+		}
+
+		if (regexec(&rx, arg, 0, NULL, 0)) {
+			snprintf(cmdline, sizeof(cmdline), "%s: Value to \'%s\' was invalid",
+				 irc_nick, cmd->name);
+			irc_msg(irc->s, irc->channel, cmdline);
+			goto out;
+		}
+		snprintf(cmdline, sizeof(cmdline)-1, cmd->action, arg);
+	} else {
+		snprintf(cmdline, sizeof(cmdline)-1, cmd->action);
+	}
+
 	printf("Running \'%s\' for %s\n", cmdline, irc_nick);
 
 	pid = fork();
 	if (pid < 0) {
-		return;
+		goto out;
 	}
 
 	if (pid > 0) {
 		/* record who did what */
 		snprintf(irc->task.user, sizeof(irc->task.user), irc_nick);
-		snprintf(irc->task.task, sizeof(irc->task.task), name);
+		snprintf(irc->task.task, sizeof(irc->task.task), cmd->name);
 		irc->task.pid = pid;
-		return;
+		goto out;
 	}
 
 	close(irc->s);
@@ -84,9 +108,13 @@ run_process(irc_t *irc, char *irc_nick, char *name, char *command, char *arg)
 			dup2(fd, pid);
 		}
 	}
-		
+
         execl("/bin/sh", "sh", "-c", cmdline, (char *) 0);
 	/* notreached */
+	return;
+out:
+	/* parent */
+	regfree(&rx);
 }
 
 void
@@ -101,13 +129,13 @@ process_command(irc_t *irc, char *irc_nick, char *command, char *arg)
 		user_valid = 0;
 		for (n = 0; irc->users[n] != NULL; n++) {
 			/* Meh, easy to spoof - use only on IRC
-   			   servers with authentication */
+			   servers with authentication */
 			if (!strcmp(irc_nick, irc->users[n])) {
 				user_valid = 1;
 			}
 		}
 		if (user_valid) {
-			run_process(irc, irc_nick, irc->commands[s].name, irc->commands[s].action, arg);
+			run_process(irc, irc_nick, &irc->commands[s], arg);
 		} else {
 			printf("Invalid user: %s\n", irc_nick);
 		}
@@ -155,6 +183,8 @@ read_commands(irc_t *irc, config_object_t *c)
 		if (sc_get(c, req, commands[id].action, sizeof(commands[id].action)) != 0)
 			/* no action */
 			continue;
+		snprintf(req, sizeof(req), "commands/command[%d]/@regex", id+1);
+		sc_get(c, req, commands[id].regex, sizeof(commands[id].regex));
 		id++;
 	}
 		
