@@ -32,7 +32,7 @@ read_acls(irc_t *irc, config_object_t *c)
 	/* NULL terminated list */
 	users = malloc(sizeof(char *) * (count + 1));
 	assert(users);
-	memset(users, 0, sizeof(char ) * (count + 1));
+	memset(users, 0, sizeof(char *) * (count + 1));
 
 	for (id = 0; id < count; id++) {
 		snprintf(req, sizeof(req), "users/user[%d]/@name", id+1);

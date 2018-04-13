@@ -11,9 +11,15 @@ typedef struct {
 } bot_task_t;
 
 typedef struct {
+	char name[64];
+	char action[256];
+} command_t;
+
+typedef struct {
 	FILE *file;
 	char *nick;
 	char **users;
+	command_t *commands;
 	char channel[256];
 	char servbuf[512];
 	bot_task_t task;

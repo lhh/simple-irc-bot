@@ -4,6 +4,7 @@
 #include <signal.h>
 
 void read_acls(irc_t *, config_object_t *);
+void read_commands(irc_t *irc, config_object_t *c);
 
 int _exiting = 0;
 
@@ -53,6 +54,7 @@ main(int argc, char **argv)
 	}
 
 	read_acls(&irc, sc);
+	read_commands(&irc, sc);
 
 	signal(SIGINT, sigint_handler);
 
