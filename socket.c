@@ -90,11 +90,15 @@ sck_sendf(int s, const char *fmt, ...)
 int
 sck_recv(int s, char *buffer, size_t size)
 {
+	fd_set rfds;
 	int rc;
 
-	rc = recv(s, buffer, size, 0);
-	if (rc <= 0)
+	FD_ZERO(&rfds);
+	FD_SET(s+1, &rfds);
+
+	rc = select(s+1, &rfds, NULL, NULL, NULL);
+	if (rc < 0)
 		return -1;
 
-	return rc;
+	return recv(s, buffer, size, 0);
 }

@@ -5,6 +5,9 @@
 #include <unistd.h>
 #include <malloc.h>
 #include <string.h>
+#include <errno.h>
+
+
 
 
 int
@@ -49,6 +52,9 @@ irc_handle_data(irc_t * irc)
 	char tempbuffer[512];
 	int rc, i;
 	if ((rc = sck_recv(irc->s, tempbuffer, sizeof (tempbuffer) - 2)) <= 0) {
+		if ((rc < 0) && (errno == EINTR)) {
+			return 0;
+		}
 		fprintf(stderr, ":v\n");
 		return -1;
 	}
@@ -215,11 +221,18 @@ irc_init(irc_t *irc)
 void
 irc_close(irc_t * irc)
 {
+	int x;
 	if (!irc) {
 		return;
 	}
 	if (irc->s >= 0) {
 		close(irc->s);
+	}
+	if (irc->users) {
+		for (x = 0; irc->users[x] != NULL; x++) {
+			free(irc->users[x]);
+		}
+		free(irc->users);
 	}
 	if (irc->file) {
 		fclose(irc->file);

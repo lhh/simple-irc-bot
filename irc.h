@@ -2,14 +2,25 @@
 #define __IRC_H
 
 #include <stdio.h>
+
+typedef struct {
+	char *task;
+	char *user;
+	int pid;
+	int pad;
+} bot_task_t;
+
 typedef struct {
 	FILE *file;
 	char *nick;
+	char **users;
 	char channel[256];
 	char servbuf[512];
+	bot_task_t task;
 	int bufptr;
 	int s;
 } irc_t;
+
 void irc_init(irc_t *irc);
 int irc_connect(irc_t * irc, const char *server, const char *port);
 int irc_login(irc_t * irc, const char *nick);

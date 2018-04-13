@@ -1,6 +1,17 @@
 #include "socket.h"
 #include "irc.h"
 #include <simpleconfig.h>
+#include <signal.h>
+
+void read_acls(irc_t *, config_object_t *);
+
+int _exiting = 0;
+
+void
+sigint_handler(int sig)
+{
+	_exiting = 1;
+}
 
 int
 main(int argc, char **argv)
@@ -41,6 +52,10 @@ main(int argc, char **argv)
 		snprintf(nick, sizeof(nick)-1, "laas");
 	}
 
+	read_acls(&irc, sc);
+
+	signal(SIGINT, sigint_handler);
+
 	if (irc_connect(&irc, server, port) < 0) {
 		fprintf(stderr, "Connection failed.\n");
 		goto exit_err;
@@ -58,7 +73,14 @@ main(int argc, char **argv)
 		goto exit_err;
 	}
 
-	while (irc_handle_data(&irc) >= 0) ;
+	while ((irc_handle_data(&irc) >= 0) && (!_exiting)) {
+		if (_exiting) {
+			break;
+		}
+	}
+
+	if (_exiting)
+		printf("Exiting on SIGINT\n");
 
 	irc_close(&irc);
 	return 0;
