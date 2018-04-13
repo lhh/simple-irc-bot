@@ -204,10 +204,26 @@ irc_log_message(irc_t * irc, const char *nick, const char *message)
 }
 
 void
+irc_init(irc_t *irc)
+{
+	if (!irc)
+		return;
+	memset(irc, 0, sizeof(*irc));
+	irc->s = -1;
+}
+
+void
 irc_close(irc_t * irc)
 {
-	close(irc->s);
-	fclose(irc->file);
+	if (!irc) {
+		return;
+	}
+	if (irc->s >= 0) {
+		close(irc->s);
+	}
+	if (irc->file) {
+		fclose(irc->file);
+	}
 }
 
 // irc_pong: For answering pong requests...

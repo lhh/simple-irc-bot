@@ -10,6 +10,7 @@ typedef struct {
 	int bufptr;
 	int s;
 } irc_t;
+void irc_init(irc_t *irc);
 int irc_connect(irc_t * irc, const char *server, const char *port);
 int irc_login(irc_t * irc, const char *nick);
 int irc_join_channel(irc_t * irc, const char *channel);
