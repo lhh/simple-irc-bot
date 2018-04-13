@@ -167,7 +167,7 @@ irc_reply_message(irc_t * irc, char *irc_nick, char *msg)
 {
 	char *command;
 	char *arg;
-	char buf[64];
+	char buf[256];
 	int s, ret = 0;
 
 	snprintf(buf, sizeof(buf)-1, "%s:", irc->nick);
@@ -191,6 +191,16 @@ irc_reply_message(irc_t * irc, char *irc_nick, char *msg)
 		if (irc_msg(irc->s, irc->channel, arg) < 0)
 			return -1;
 		ret = 1;
+	} else if (strcmp(command, "status") == 0) {
+		if (irc->task.pid) {
+			snprintf(buf, sizeof(buf), "%s: Running %s (pid %d) for %s",
+				 irc_nick, irc->task.task, irc->task.pid,
+				 irc->task.user);
+		} else {
+			snprintf(buf, sizeof(buf), "%s: Not doing anything.",
+			         irc_nick);
+		}
+		irc_msg(irc->s, irc->channel, buf);
 	} else {
 		process_command(irc, irc_nick, command, arg);
 	}
