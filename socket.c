@@ -94,8 +94,7 @@ sck_recv(int s, char *buffer, size_t size)
 	int rc;
 
 	FD_ZERO(&rfds);
-	FD_SET(s+1, &rfds);
-
+	FD_SET(s, &rfds);
 	rc = select(s+1, &rfds, NULL, NULL, NULL);
 	if (rc < 0)
 		return -1;

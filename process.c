@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <irc.h>
@@ -6,15 +6,114 @@
 #include <assert.h>
 #include <malloc.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <regex.h>
 
+
+int
+process_done(irc_t *irc)
+{
+	char msg[256];
+	int status, ret;
+
+	if (!irc->task.pid) {
+		return 0;
+	}
+
+	ret = waitpid(irc->task.pid, &status, WNOHANG);
+	if (ret != irc->task.pid) {
+		return 0;
+	}
+
+	snprintf(msg, sizeof(msg), "%s: %s complete, return code %d\n",
+		 irc->task.user, irc->task.task, WEXITSTATUS(status));
+
+	memset(&irc->task, 0, sizeof(irc->task));
+	return irc_msg(irc->s, irc->channel, msg);
+}
 
 
 void
-check_commands(irc_t *irc, char *nick, char *msg)
+run_process(irc_t *irc, char *irc_nick, char *name, char *command, char *arg)
 {
-	return;
+	char cmdline[512];
+	regex_t rx;
+	int pid;
+	int fd;
+
+	if (irc->task.pid) {
+		snprintf(cmdline, sizeof(cmdline), "%s: I am busy doing %s for %s\n",
+			 irc_nick, irc->task.task, irc->task.user);
+		irc_msg(irc->s, irc->channel, cmdline);
+		return;
+	}
+		
+	printf("command: %s arg: \'%s\'\n", command, arg);
+
+        regcomp(&rx, "^[a-zA-Z0-9_,\\.\\-]+$", REG_EXTENDED);
+        if (regexec(&rx, arg, 0, NULL, 0)) {
+		return;
+        }
+
+	snprintf(cmdline, sizeof(cmdline)-1, command, arg);
+	printf("Running \'%s\' for %s\n", cmdline, irc_nick);
+
+	pid = fork();
+	if (pid < 0) {
+		return;
+	}
+
+	if (pid > 0) {
+		/* record who did what */
+		snprintf(irc->task.user, sizeof(irc->task.user), irc_nick);
+		snprintf(irc->task.task, sizeof(irc->task.task), name);
+		irc->task.pid = pid;
+		return;
+	}
+
+	close(irc->s);
+	fd = open("/dev/null", O_RDWR);
+	for (pid = 0; pid <= 2; pid++) {
+		if (fd != pid) {
+			close(pid);
+			dup2(fd, pid);
+		}
+	}
+		
+        execl("/bin/sh", "sh", "-c", cmdline, (char *) 0);
+	/* notreached */
 }
+
+void
+process_command(irc_t *irc, char *irc_nick, char *command, char *arg)
+{
+	int s, user_valid, n;
+
+	for (s = 0; irc->commands[s].name[0]; s++) {
+		if (strcmp(command, irc->commands[s].name)) {
+			continue;
+		}
+		user_valid = 0;
+		for (n = 0; irc->users[n] != NULL; n++) {
+			/* Meh, easy to spoof - use only on IRC
+   			   servers with authentication */
+			if (!strcmp(irc_nick, irc->users[n])) {
+				user_valid = 1;
+			}
+		}
+		if (user_valid) {
+			run_process(irc, irc_nick, irc->commands[s].name, irc->commands[s].action, arg);
+		} else {
+			printf("Invalid user: %s\n", irc_nick);
+		}
+	}
+}
+
 
 void
 read_commands(irc_t *irc, config_object_t *c)

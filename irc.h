@@ -4,8 +4,8 @@
 #include <stdio.h>
 
 typedef struct {
-	char *task;
-	char *user;
+	char task[64];
+	char user[64];
 	int pid;
 	int pad;
 } bot_task_t;

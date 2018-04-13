@@ -8,6 +8,7 @@
 #include <errno.h>
 
 
+void process_command(irc_t *irc, char *irc_nick, char *command, char *arg);
 
 
 int
@@ -190,6 +191,8 @@ irc_reply_message(irc_t * irc, char *irc_nick, char *msg)
 		if (irc_msg(irc->s, irc->channel, arg) < 0)
 			return -1;
 		ret = 1;
+	} else {
+		process_command(irc, irc_nick, command, arg);
 	}
 
 	return ret;

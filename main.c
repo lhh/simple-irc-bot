@@ -5,13 +5,21 @@
 
 void read_acls(irc_t *, config_object_t *);
 void read_commands(irc_t *irc, config_object_t *c);
+int process_done(irc_t *irc);
 
-int _exiting = 0;
+static int _exiting;
+static int _child;
 
 void
 sigint_handler(int sig)
 {
 	_exiting = 1;
+}
+
+void
+sigchld_handler(int sig)
+{
+	_child = 1;
 }
 
 int
@@ -57,6 +65,7 @@ main(int argc, char **argv)
 	read_commands(&irc, sc);
 
 	signal(SIGINT, sigint_handler);
+	signal(SIGCHLD, sigchld_handler);
 
 	if (irc_connect(&irc, server, port) < 0) {
 		fprintf(stderr, "Connection failed.\n");
@@ -78,6 +87,10 @@ main(int argc, char **argv)
 	while ((irc_handle_data(&irc) >= 0) && (!_exiting)) {
 		if (_exiting) {
 			break;
+		}
+		if (_child) {
+			_child = 0;
+			process_done(&irc);
 		}
 	}
 
