@@ -6,6 +6,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 
 
 void process_command(irc_t *irc, char *irc_nick, char *command, char *arg);
@@ -36,6 +37,11 @@ irc_login(irc_t * irc, const char *nick)
 int
 irc_join_channel(irc_t * irc, const char *channel)
 {
+	if (strcmp(irc->channel, channel) == 0)
+		return 0;
+	if (strlen(irc->channel)) {
+		irc_leave_channel(irc);
+	}
 	strncpy(irc->channel, channel, 254);
 	irc->channel[254] = '\0';
 	return irc_join(irc->s, channel);
@@ -191,6 +197,9 @@ irc_reply_message(irc_t * irc, char *irc_nick, char *msg)
 		if (irc_msg(irc->s, irc->channel, arg) < 0)
 			return -1;
 		ret = 1;
+	} else if (strcmp(command, "reload") == 0) {
+		raise(SIGHUP);
+		return 1;
 	} else if (strcmp(command, "status") == 0) {
 		if (irc->task.pid) {
 			snprintf(buf, sizeof(buf), "%s: Running %s (pid %d) for %s",

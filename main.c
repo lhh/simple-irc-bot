@@ -9,11 +9,25 @@ int process_done(irc_t *irc);
 
 static int _exiting;
 static int _child;
+static int _reload;
 
 void
-sigint_handler(int sig)
+sig_handler(int sig)
 {
-	_exiting = 1;
+	switch(sig) {
+	case SIGINT:
+	case SIGQUIT:
+	case SIGTERM:
+		_exiting = 1;
+		break;
+	case SIGCHLD:
+		_child = 1;
+		break;
+	case SIGWINCH:
+	case SIGHUP:
+		_reload = 1;
+		break;
+	}
 }
 
 void
@@ -39,6 +53,13 @@ main(int argc, char **argv)
 		goto exit_err;
 	}
 
+	signal(SIGINT, sig_handler);
+	signal(SIGQUIT, sig_handler);
+	signal(SIGTERM, sig_handler);
+	signal(SIGCHLD, sig_handler);
+	signal(SIGHUP, sig_handler);
+
+reload:
 	if (sc_parse(sc, argv[1])) {
 		fprintf(stderr, "Failed to parse: %s\n", argv[1]);
 		goto exit_err;
@@ -64,15 +85,15 @@ main(int argc, char **argv)
 	read_acls(&irc, sc);
 	read_commands(&irc, sc);
 
-	signal(SIGINT, sigint_handler);
-	signal(SIGCHLD, sigchld_handler);
+	/* FIXME: Switch channels */
+	if (irc.s < 0) {
+		irc_set_output(&irc, "/dev/stdout");
 
-	if (irc_connect(&irc, server, port) < 0) {
-		fprintf(stderr, "Connection failed.\n");
-		goto exit_err;
+		if (irc_connect(&irc, server, port) < 0) {
+			fprintf(stderr, "Connection failed.\n");
+			goto exit_err;
+		}
 	}
-
-	irc_set_output(&irc, "/dev/stdout");
 
 	if (irc_login(&irc, nick) < 0) {
 		fprintf(stderr, "Couldn't log in.\n");
@@ -91,6 +112,10 @@ main(int argc, char **argv)
 		if (_child) {
 			_child = 0;
 			process_done(&irc);
+		}
+		if (_reload) {
+			_reload = 0;
+			goto reload;
 		}
 	}
 
