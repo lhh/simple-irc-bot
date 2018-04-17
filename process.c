@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <regex.h>
 
+int nope(irc_t *irc, char *nick);
 
 int
 process_done(irc_t *irc)
@@ -138,6 +139,7 @@ process_command(irc_t *irc, char *irc_nick, char *command, char *arg)
 			run_process(irc, irc_nick, &irc->commands[s], arg);
 		} else {
 			printf("Invalid user: %s\n", irc_nick);
+			nope(irc, irc_nick);
 		}
 	}
 }

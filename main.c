@@ -6,6 +6,8 @@
 void read_acls(irc_t *, config_object_t *);
 void read_commands(irc_t *irc, config_object_t *c);
 int process_done(irc_t *irc);
+void irc_clear_config(irc_t *irc);
+void read_nopes(irc_t *irc, config_object_t *c);
 
 static int _exiting;
 static int _child;
@@ -40,7 +42,7 @@ int
 main(int argc, char **argv)
 {
 	irc_t irc;
-	config_object_t *sc = sc_init();
+	config_object_t *sc = NULL;
 	char server[64];
 	char port[8];
 	char nick[32];
@@ -60,6 +62,12 @@ main(int argc, char **argv)
 	signal(SIGHUP, sig_handler);
 
 reload:
+	if (sc != NULL) {
+		sc_release(sc);
+	}
+	sc = sc_init();
+	irc_clear_config(&irc);
+
 	if (sc_parse(sc, argv[1])) {
 		fprintf(stderr, "Failed to parse: %s\n", argv[1]);
 		goto exit_err;
@@ -84,6 +92,7 @@ reload:
 
 	read_acls(&irc, sc);
 	read_commands(&irc, sc);
+	read_nopes(&irc, sc);
 
 	/* FIXME: Switch channels */
 	if (irc.s < 0) {

@@ -21,11 +21,13 @@ typedef struct {
 	char *nick;
 	char **users;
 	command_t *commands;
+	char **nopes;
 	char channel[256];
 	char servbuf[512];
 	bot_task_t task;
 	int bufptr;
 	int s;
+	int c_nope;
 } irc_t;
 
 void irc_init(irc_t *irc);

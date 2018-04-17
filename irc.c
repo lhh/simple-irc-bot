@@ -10,6 +10,7 @@
 
 
 void process_command(irc_t *irc, char *irc_nick, char *command, char *arg);
+void nope(irc_t *irc, char *irc_nick, char *command, char *arg);
 
 
 int
@@ -241,23 +242,43 @@ irc_init(irc_t *irc)
 }
 
 void
-irc_close(irc_t * irc)
+irc_clear_config(irc_t *irc)
 {
 	int x;
+
+	if (irc->users) {
+		for (x = 0; irc->users[x] != NULL; x++) {
+			free(irc->users[x]);
+		}
+		free(irc->users);
+		irc->users = NULL;
+	}
+	if (irc->nopes) {
+		for (x = 0; irc->nopes[x] != NULL; x++) {
+			free(irc->nopes[x]);
+		}
+		free(irc->nopes);
+		irc->nopes = NULL;
+	}
+	if (irc->commands) {
+		free(irc->commands);
+		irc->nopes = NULL;
+	}
+}
+
+void
+irc_close(irc_t * irc)
+{
 	if (!irc) {
 		return;
 	}
 	if (irc->s >= 0) {
 		close(irc->s);
 	}
-	if (irc->users) {
-		for (x = 0; irc->users[x] != NULL; x++) {
-			free(irc->users[x]);
-		}
-		free(irc->users);
-	}
+	irc_clear_config(irc);
 	if (irc->file) {
 		fclose(irc->file);
+		irc->file = (FILE *)NULL;
 	}
 }
 
