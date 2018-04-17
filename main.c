@@ -94,7 +94,6 @@ reload:
 	read_commands(&irc, sc);
 	read_nopes(&irc, sc);
 
-	/* FIXME: Switch channels */
 	if (irc.s < 0) {
 		irc_set_output(&irc, "/dev/stdout");
 
