@@ -1,0 +1,9 @@
+* Reconnect? (Move old clumanager fdops stuff over?)
+* Authentication?
+  * Allow specifying per-task ACLs (useless without authentication)
+* (config) Add a call to count number of configuration values matching
+  a specific pattern
+  * Alternatively, use realloc()
+    (for reading tasks/users/etc.)
+* Allow one child process per task, rather than only one child process
+* Help (output list of defined commands)
