@@ -50,12 +50,17 @@ nope(irc_t *irc, char *nick)
 	char msg[128];
 	int r;
 
+	if (irc->c_nope <= 0) {
+		snprintf(msg, sizeof(msg), "%s: No.", nick);
+		goto out;
+	}
+
 	r = (rand() % irc->c_nope);
 	if (strstr(irc->nopes[r], "%s")) {
 		snprintf(msg, sizeof(msg), irc->nopes[r], nick);
 	} else {
 		snprintf(msg, sizeof(msg), irc->nopes[r]);
 	}
-
+out:
 	return irc_msg(irc->s, irc->channel, msg);
 }

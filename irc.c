@@ -274,6 +274,7 @@ irc_close(irc_t * irc)
 	}
 	if (irc->s >= 0) {
 		close(irc->s);
+		irc->s = -1;
 	}
 	irc_clear_config(irc);
 	if (irc->file) {

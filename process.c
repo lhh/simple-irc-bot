@@ -98,6 +98,9 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char *arg)
 		snprintf(irc->task.user, sizeof(irc->task.user), irc_nick);
 		snprintf(irc->task.task, sizeof(irc->task.task), cmd->name);
 		irc->task.pid = pid;
+		snprintf(cmdline, sizeof(cmdline), "%s: %s started",
+			 irc_nick, cmd->name);
+		irc_msg(irc->s, irc->channel, cmdline);
 		goto out;
 	}
 
