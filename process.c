@@ -140,11 +140,14 @@ process_command(irc_t *irc, char *irc_nick, char *command, char *arg)
 		}
 		if (user_valid) {
 			run_process(irc, irc_nick, &irc->commands[s], arg);
+			return;
 		} else {
 			printf("Invalid user: %s\n", irc_nick);
-			nope(irc, irc_nick);
+			goto out;
 		}
 	}
+out:
+	nope(irc, irc_nick);
 }
 
 
