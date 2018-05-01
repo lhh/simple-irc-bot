@@ -4,17 +4,21 @@ LDFLAGS = -Lconfig -lsimpleconfig
 
 TARGET = ircbot
 
-OBJECTS = main.o irc.o socket.o acl.o process.o nope.o command.o
+OBJECTS = main.o irc.o socket.o acl.o process.o nope.o command.o version.o
 
 all: $(TARGET)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+version.c:
+	@RELEASE=$$(git log -1 | awk '/^commit/ { print $$2 }') ;\
+	echo "char *_version_ = \"$$RELEASE built $$(date)\";" > version.c
+
 clean: clean-obj clean-bin clean-config
 
 clean-obj:
-	rm -rf *.o
+	rm -rf *.o version.c
 	
 clean-bin:
 	rm -rf $(TARGET)

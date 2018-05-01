@@ -1,5 +1,6 @@
 #include "command.h"
 #include "irc.h"
+#include "version.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -14,6 +15,14 @@ typedef struct {
 command_table_t command_table[];
 
 int external_command(irc_t *irc, char *irc_nick, char *command, char *arg);
+
+int
+version(irc_t *irc, char *irc_nick, char *command, char *arg)
+{
+	if (irc_msg(irc->s, irc->channel, _version_) < 0)
+		return -1;
+	return 1;
+}
 
 
 int
@@ -108,6 +117,7 @@ out:
 
 command_table_t command_table[] = {
 	{ "status", "Display status", status },
+	{ "version", "Display version", version },
 	{ "echo", "Print something", echo },
 	{ "ping", "Pong!", pong },
 	{ "reload", "Reload configuration", reload },
