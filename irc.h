@@ -14,6 +14,7 @@ typedef struct {
 	char name[64];
 	char regex[128];
 	char action[256];
+	char help[256];
 } command_t;
 
 

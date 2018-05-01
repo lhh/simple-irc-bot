@@ -190,6 +190,9 @@ read_commands(irc_t *irc, config_object_t *c)
 		if (sc_get(c, req, commands[id].action, sizeof(commands[id].action)) != 0)
 			/* no action */
 			continue;
+		/* don't care if there's no help */
+		snprintf(req, sizeof(req), "commands/command[%d]/@help", id+1);
+		sc_get(c, req, commands[id].help, sizeof(commands[id].help));
 		snprintf(req, sizeof(req), "commands/command[%d]/@regex", id+1);
 		sc_get(c, req, commands[id].regex, sizeof(commands[id].regex));
 		id++;
