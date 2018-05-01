@@ -92,6 +92,10 @@ help(irc_t *irc, char *irc_nick, char *command, char *arg)
 	for (x = 0; command_table[x].name != NULL; x++) {
 		if (strcmp(arg, command_table[x].name))
 			continue;
+		if (command_table[x].help == NULL) {
+			snprintf(buf, sizeof(buf), "%s: No help for '%s'", irc_nick, arg);
+			goto out;
+		}
 		snprintf(buf, sizeof(buf), "%s: %s", irc_nick, command_table[x].help);
 		goto out;
 	}
@@ -121,7 +125,7 @@ command_table_t command_table[] = {
 	{ "echo", "Print something", echo },
 	{ "ping", "Pong!", pong },
 	{ "reload", "Reload configuration", reload },
-	{ "help", "You're beyond help", help },
+	{ "help", NULL, help },
 	{ NULL, NULL, NULL }
 };
 
