@@ -7,9 +7,9 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include "command.h"
 
 
-void process_command(irc_t *irc, char *irc_nick, char *command, char *arg);
 void nope(irc_t *irc, char *irc_nick, char *command, char *arg);
 
 
@@ -172,50 +172,15 @@ irc_set_output(irc_t * irc, const char *file)
 int
 irc_reply_message(irc_t * irc, char *irc_nick, char *msg)
 {
-	char *command;
-	char *arg;
 	char buf[256];
-	int s, ret = 0;
+	int s;
 
-	snprintf(buf, sizeof(buf)-1, "%s:", irc->nick);
+	snprintf(buf, sizeof(buf)-1, "%s: ", irc->nick);
 	s = strlen(buf);
         if (strncmp(msg, buf, s) != 0)
 		return 0;
 
-	// Gets command
-	command = strtok(&msg[s], " ");
-	arg = strtok(NULL, "");
-	if (arg != NULL)
-		while (*arg == ' ')
-			arg++;
-	if (command == NULL)
-		return 0;
-	if (strcmp(command, "ping") == 0) {
-		if (irc_msg(irc->s, irc->channel, "pong") < 0)
-			return -1;
-		ret = 1;
-	} else if (strcmp(command, "echo") == 0) {
-		if (irc_msg(irc->s, irc->channel, arg) < 0)
-			return -1;
-		ret = 1;
-	} else if (strcmp(command, "reload") == 0) {
-		raise(SIGHUP);
-		return 1;
-	} else if (strcmp(command, "status") == 0) {
-		if (irc->task.pid) {
-			snprintf(buf, sizeof(buf), "%s: Running %s (pid %d) for %s",
-				 irc_nick, irc->task.task, irc->task.pid,
-				 irc->task.user);
-		} else {
-			snprintf(buf, sizeof(buf), "%s: Not doing anything.",
-			         irc_nick);
-		}
-		irc_msg(irc->s, irc->channel, buf);
-	} else {
-		process_command(irc, irc_nick, command, arg);
-	}
-
-	return ret;
+	return process_command(irc, irc_nick, &msg[s]);
 }
 
 int

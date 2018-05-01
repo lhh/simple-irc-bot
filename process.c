@@ -121,33 +121,32 @@ out:
 	regfree(&rx);
 }
 
-void
-process_command(irc_t *irc, char *irc_nick, char *command, char *arg)
+int
+external_command(irc_t *irc, char *irc_nick, char *command, char *arg)
 {
-	int s, user_valid, n;
+	int s, user_valid = 0, n;
+
+	/* TODO - move this to another function */
+	for (n = 0; irc->users[n] != NULL; n++) {
+		/* Meh, easy to spoof - use only on IRC
+		   servers with authentication */
+		if (!strcmp(irc_nick, irc->users[n]))
+			user_valid = 1;
+	}
+	if (!user_valid) {
+		printf("Invalid user: %s\n", irc_nick);
+		goto out;
+	}
 
 	for (s = 0; irc->commands[s].name[0]; s++) {
-		if (strcmp(command, irc->commands[s].name)) {
+		if (strcmp(command, irc->commands[s].name))
 			continue;
-		}
-		user_valid = 0;
-		for (n = 0; irc->users[n] != NULL; n++) {
-			/* Meh, easy to spoof - use only on IRC
-			   servers with authentication */
-			if (!strcmp(irc_nick, irc->users[n])) {
-				user_valid = 1;
-			}
-		}
-		if (user_valid) {
-			run_process(irc, irc_nick, &irc->commands[s], arg);
-			return;
-		} else {
-			printf("Invalid user: %s\n", irc_nick);
-			goto out;
-		}
+		run_process(irc, irc_nick, &irc->commands[s], arg);
+		return 1;
 	}
 out:
 	nope(irc, irc_nick);
+	return 0;
 }
 
 

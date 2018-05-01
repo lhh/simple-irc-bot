@@ -16,6 +16,7 @@ typedef struct {
 	char action[256];
 } command_t;
 
+
 typedef struct {
 	FILE *file;
 	char *nick;

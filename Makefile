@@ -4,7 +4,7 @@ LDFLAGS = -Lconfig -lsimpleconfig
 
 TARGET = ircbot
 
-OBJECTS = main.o irc.o socket.o acl.o process.o nope.o
+OBJECTS = main.o irc.o socket.o acl.o process.o nope.o command.o
 
 all: $(TARGET)
 
