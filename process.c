@@ -19,8 +19,10 @@ int nope(irc_t *irc, char *nick);
 int
 process_done(irc_t *irc)
 {
-	char msg[256];
+	char output[1000];
+	char msg[1024];
 	int status, ret;
+	int capture = 0;
 
 	if (!irc->task.pid) {
 		return 0;
@@ -31,8 +33,26 @@ process_done(irc_t *irc)
 		return 0;
 	}
 
-	snprintf(msg, sizeof(msg), "%s: %s complete, return code %d\n",
-		 irc->task.user, irc->task.task, WEXITSTATUS(status));
+	if (irc->task.fd >= 0) {
+		memset(output, 0, sizeof(output));
+		ret = read(irc->task.fd, output, sizeof(output)-32);
+		if (ret < 0) {
+			perror("read");
+		}
+		if (ret > 0) {
+			capture = 1;
+		}
+		close(irc->task.fd);
+		irc->task.fd = -1;
+	}
+
+	if (capture) {
+		snprintf(msg, sizeof(msg), "%s: %s", irc->task.user,
+			 output);
+	} else {
+		snprintf(msg, sizeof(msg), "%s: %s complete, return code %d",
+			 irc->task.user, irc->task.task, WEXITSTATUS(status));
+	}
 
 	memset(&irc->task, 0, sizeof(irc->task));
 	return irc_msg(irc->s, irc->channel, msg);
@@ -46,6 +66,8 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char *arg)
 	regex_t rx;
 	int pid;
 	int fd;
+	int capture = cmd->capture;
+	int p[2];
 
 	if (irc->task.pid) {
 		snprintf(cmdline, sizeof(cmdline), "%s: I am busy doing %s for %s\n",
@@ -53,6 +75,8 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char *arg)
 		irc_msg(irc->s, irc->channel, cmdline);
 		return;
 	}
+
+	//printf("Capture: %d\n", capture);
 
 	if (strstr(cmd->action, "%s")) {
 		if (arg == NULL) {
@@ -86,10 +110,25 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char *arg)
 		snprintf(cmdline, sizeof(cmdline)-1, cmd->action);
 	}
 
-	printf("Running \'%s\' for %s\n", cmdline, irc_nick);
+	//printf("Running \'%s\' for %s\n", cmdline, irc_nick);
+
+	if (capture) {
+		/* WARNING: pipe buffer filling up will deadlock */
+		/* Need to create circular buffer and thread to
+		   consume pipe output so child task does not
+		   block */
+		if (pipe(p) < 0) {
+			capture = 0;
+		}
+	}
+
 
 	pid = fork();
 	if (pid < 0) {
+		if (capture) {
+			close(p[0]);
+			close(p[1]);
+		}
 		goto out;
 	}
 
@@ -98,21 +137,38 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char *arg)
 		snprintf(irc->task.user, sizeof(irc->task.user), irc_nick);
 		snprintf(irc->task.task, sizeof(irc->task.task), cmd->name);
 		irc->task.pid = pid;
-		snprintf(cmdline, sizeof(cmdline), "%s: %s started",
-			 irc_nick, cmd->name);
-		irc_msg(irc->s, irc->channel, cmdline);
+		irc->task.fd = -1;
+		if (!capture) {
+			snprintf(cmdline, sizeof(cmdline), "%s: %s started",
+				 irc_nick, cmd->name);
+			irc_msg(irc->s, irc->channel, cmdline);
+		} else {
+			irc->task.fd = p[0];
+			close(p[1]);
+		}
 		goto out;
 	}
 
 	close(irc->s);
-	fd = open("/dev/null", O_RDWR);
-	for (pid = 0; pid <= 2; pid++) {
-		if (fd != pid) {
-			close(pid);
-			dup2(fd, pid);
+
+	if (!capture) {
+		fd = open("/dev/null", O_RDWR);
+		for (pid = 0; pid <= 2; pid++) {
+			if (fd != pid) {
+				close(pid);
+				dup2(fd, pid);
+			}
+		}
+	} else {
+		close(p[0]);
+		close(0);
+		for (pid = 1; pid <= 2; pid++) {
+			if (p[1] != pid) {
+				close(pid);
+				dup2(p[1], pid);
+			}
 		}
 	}
-
         execl("/bin/sh", "sh", "-c", cmdline, (char *) 0);
 	/* notreached */
 	return;
@@ -120,6 +176,7 @@ out:
 	/* parent */
 	regfree(&rx);
 }
+
 
 int
 external_command(irc_t *irc, char *irc_nick, char *command, char *arg)
@@ -193,6 +250,14 @@ read_commands(irc_t *irc, config_object_t *c)
 		/* don't care if there's no help */
 		snprintf(req, sizeof(req), "commands/command[%d]/@help", id+1);
 		sc_get(c, req, commands[id].help, sizeof(commands[id].help));
+		snprintf(req, sizeof(req), "commands/command[%d]/@capture", id+1);
+		commands[id].capture = 0;
+		if (sc_get(c, req, value, sizeof(value)) == 0) {
+			if (atoi(value) > 0 || strcasecmp(value, "yes") || strcasecmp(value, "true")) {
+				//printf("Capturing for %s (%s)\n", commands[id].name, value);
+				commands[id].capture = 1;
+			}
+		}
 		snprintf(req, sizeof(req), "commands/command[%d]/@regex", id+1);
 		sc_get(c, req, commands[id].regex, sizeof(commands[id].regex));
 		id++;

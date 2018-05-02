@@ -7,7 +7,7 @@ typedef struct {
 	char task[64];
 	char user[64];
 	int pid;
-	int pad;
+	int fd;
 } bot_task_t;
 
 typedef struct {
@@ -15,6 +15,7 @@ typedef struct {
 	char regex[128];
 	char action[256];
 	char help[256];
+	int capture;		/* capture output */
 } command_t;
 
 
