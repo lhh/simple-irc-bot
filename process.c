@@ -230,18 +230,11 @@ read_commands(irc_t *irc, config_object_t *c)
 	command_t *commands;
 	int count = 0;
 	int id = 0;
+	int idx = 0;
 
-	while (1) {
-		snprintf(req, sizeof(req), "commands/command[%d]/@name", count+1);
-		if (sc_get(c, req, value, sizeof(value)) != 0) {
-			break;
-		}
-		snprintf(req, sizeof(req), "commands/command[%d]/@action", count+1);
-		if (sc_get(c, req, value, sizeof(value)) != 0)
-			/* no action */
-			continue;
-		count++;
-	}
+	if (sc_get(c, "commands/#command", value, sizeof(value)) != 0)
+		return;
+	count = atoi(value);
 
 	if (!count) {
 		printf("No Commands\n");
@@ -253,33 +246,35 @@ read_commands(irc_t *irc, config_object_t *c)
 	assert(commands);
 	memset(commands, 0, sizeof(command_t) * (count + 1));
 
-	for (id = 0; id < count;) {
+	for (id = 0; id < count; id++) {
 		snprintf(req, sizeof(req), "commands/command[%d]/@name", id+1);
-		if (sc_get(c, req, commands[id].name, sizeof(commands[id].name)) != 0) {
-			break;
+		if (sc_get(c, req, value, sizeof(value)) != 0) {
+			continue;
 		}
+		++idx;
+		strncpy(commands[idx-1].name, value, sizeof(commands[idx-1].name));
+
 		snprintf(req, sizeof(req), "commands/command[%d]/@action", id+1);
-		if (sc_get(c, req, commands[id].action, sizeof(commands[id].action)) != 0)
+		if (sc_get(c, req, commands[idx-1].action, sizeof(commands[id].action)) != 0)
 			/* no action */
 			continue;
 		/* don't care if there's no help */
 		snprintf(req, sizeof(req), "commands/command[%d]/@help", id+1);
-		sc_get(c, req, commands[id].help, sizeof(commands[id].help));
+		sc_get(c, req, commands[idx-1].help, sizeof(commands[id].help));
 		snprintf(req, sizeof(req), "commands/command[%d]/@capture", id+1);
 		commands[id].capture = 0;
 		if (sc_get(c, req, value, sizeof(value)) == 0) {
 			if (atoi(value) > 0 || strcasecmp(value, "yes") || strcasecmp(value, "true")) {
 				//printf("Capturing for %s (%s)\n", commands[id].name, value);
-				commands[id].capture = 1;
+				commands[idx-1].capture = 1;
 			}
 		}
 		snprintf(req, sizeof(req), "commands/command[%d]/@regex", id+1);
-		sc_get(c, req, commands[id].regex, sizeof(commands[id].regex));
-		id++;
+		sc_get(c, req, commands[idx-1].regex, sizeof(commands[id].regex));
 	}
 		
-	printf("%d actions\n", count);
-	for (id = 0; id < count; id++) {
+	printf("%d actions\n", idx);
+	for (id = 0; id < idx; id++) {
 		printf("  %s: %s\n", commands[id].name, commands[id].action);
 	}
 

@@ -15,15 +15,11 @@ read_acls(irc_t *irc, config_object_t *c)
 	char **users;
 	int count = 0;
 	int id = 0;
+	int idx = 0;
 
-	while (1) {
-		snprintf(req, sizeof(req), "users/user[%d]/@name", count+1);
-		if (sc_get(c, req, value, sizeof(value)) != 0) {
-			break;
-		}
-		count++;
-	}
-
+	if (sc_get(c, "users/#user", value, sizeof(value)) != 0)
+		return;
+	count = atoi(value);
 	if (!count) {
 		printf("No Users\n");
 		return;
@@ -36,12 +32,14 @@ read_acls(irc_t *irc, config_object_t *c)
 
 	for (id = 0; id < count; id++) {
 		snprintf(req, sizeof(req), "users/user[%d]/@name", id+1);
-		sc_get(c, req, value, sizeof(value));
-		users[id] = strdup(value);
+		if (sc_get(c, req, value, sizeof(value)))
+			continue;
+		users[idx++] = strdup(value);
 	}
+	count = id;
 		
-	printf("%d users\n", count);
-	for (id = 0; id < count; id++) {
+	printf("%d users\n", idx);
+	for (id = 0; id < idx; id++) {
 		printf("  %s\n", users[id]);
 	}
 
