@@ -11,7 +11,7 @@ void
 read_nopes(irc_t *irc, config_object_t *c)
 {
 	char req[64];
-	char value[64];
+	char value[256];
 	char **nopes;
 	int count = 0;
 	int id = 0;
@@ -47,7 +47,7 @@ read_nopes(irc_t *irc, config_object_t *c)
 int
 nope(irc_t *irc, char *nick)
 {
-	char msg[128];
+	char msg[256];
 	int r;
 
 	if (irc->c_nope <= 0) {

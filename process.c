@@ -19,8 +19,9 @@ int nope(irc_t *irc, char *nick);
 int
 process_done(irc_t *irc)
 {
-	char output[1000];
-	char msg[1024];
+	char output[4000];
+	char msg[4096];
+	char *c, *p;
 	int status, ret;
 	int capture = 0;
 
@@ -35,7 +36,7 @@ process_done(irc_t *irc)
 
 	if (irc->task.fd >= 0) {
 		memset(output, 0, sizeof(output));
-		ret = read(irc->task.fd, output, sizeof(output)-32);
+		ret = read(irc->task.fd, output, sizeof(output)-1);
 		if (ret < 0) {
 			perror("read");
 		}
@@ -47,15 +48,29 @@ process_done(irc_t *irc)
 	}
 
 	if (capture) {
-		snprintf(msg, sizeof(msg), "%s: %s", irc->task.user,
-			 output);
+		p = output;
+		while ((c = strchr(p, '\n'))) {
+			*c = 0;
+			if (strlen(p)) {
+				snprintf(msg, sizeof(msg), "%s: %s", irc->task.user,
+					 p);
+ 				irc_msg(irc->s, irc->channel, msg);
+			}
+			p = c+1;
+		}
+		if (strlen(p)) {
+			snprintf(msg, sizeof(msg), "%s: %s", irc->task.user,
+				 p);
+ 			irc_msg(irc->s, irc->channel, msg);
+		}
 	} else {
 		snprintf(msg, sizeof(msg), "%s: %s complete, return code %d",
 			 irc->task.user, irc->task.task, WEXITSTATUS(status));
+ 		irc_msg(irc->s, irc->channel, msg);
 	}
 
 	memset(&irc->task, 0, sizeof(irc->task));
-	return irc_msg(irc->s, irc->channel, msg);
+	return 0;
 }
 
 

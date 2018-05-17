@@ -99,5 +99,5 @@ sck_recv(int s, char *buffer, size_t size)
 	if (rc < 0)
 		return -1;
 
-	return recv(s, buffer, size, 0);
+	return read(s, buffer, size);
 }

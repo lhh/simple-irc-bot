@@ -2,6 +2,7 @@
 #include "irc.h"
 #include <simpleconfig.h>
 #include <signal.h>
+#include <unistd.h>
 
 void read_acls(irc_t *, config_object_t *);
 void read_commands(irc_t *irc, config_object_t *c);
@@ -12,6 +13,7 @@ void read_nopes(irc_t *irc, config_object_t *c);
 static int _exiting;
 static int _child;
 static int _reload;
+static int _reconn;
 
 void
 sig_handler(int sig)
@@ -28,6 +30,9 @@ sig_handler(int sig)
 	case SIGWINCH:
 	case SIGHUP:
 		_reload = 1;
+		break;
+	case SIGPIPE:
+		_reconn = 1;
 		break;
 	}
 }
@@ -48,6 +53,7 @@ main(int argc, char **argv)
 	char nick[32];
 	char channel[32];
 
+restart:
 	irc_init(&irc);
 
 	if (argc < 2) {
@@ -56,6 +62,7 @@ main(int argc, char **argv)
 	}
 
 	signal(SIGINT, sig_handler);
+	signal(SIGPIPE, sig_handler);
 	signal(SIGQUIT, sig_handler);
 	signal(SIGTERM, sig_handler);
 	signal(SIGCHLD, sig_handler);
@@ -94,12 +101,14 @@ reload:
 	read_commands(&irc, sc);
 	read_nopes(&irc, sc);
 
-	if (irc.s < 0) {
-		irc_set_output(&irc, "/dev/stdout");
+	irc_set_output(&irc, "/dev/stdout");
 
-		if (irc_connect(&irc, server, port) < 0) {
-			fprintf(stderr, "Connection failed.\n");
-			goto exit_err;
+	if (irc.s < 0) {
+		while (irc_connect(&irc, server, port) < 0) {
+			if (_exiting) {
+				goto exit_err;
+			}
+			sleep(30);
 		}
 	}
 
@@ -107,13 +116,17 @@ reload:
 		fprintf(stderr, "Couldn't log in.\n");
 		goto exit_err;
 	}
+	fprintf(stderr, "Set nick to %s\n", nick);
 
 	if (irc_join_channel(&irc, channel) < 0) {
 		fprintf(stderr, "Couldn't join channel.\n");
 		goto exit_err;
 	}
+	fprintf(stderr, "Joined %s\n", channel);
 
-	while ((irc_handle_data(&irc) >= 0) && (!_exiting)) {
+	while (!_exiting) {
+		irc_handle_data(&irc);
+
 		if (_exiting) {
 			break;
 		}
@@ -125,15 +138,23 @@ reload:
 			_reload = 0;
 			goto reload;
 		}
+		if (_reconn) {
+			fprintf(stderr, "Reconnecting!\n");
+			irc_shutdown(&irc);
+			sleep(3);
+			_reconn = 0;
+			goto restart;
+		}
 	}
+
 
 	if (_exiting)
 		printf("Exiting on SIGINT\n");
 
-	irc_close(&irc);
+	irc_shutdown(&irc);
 	return 0;
 
       exit_err:
-	irc_close(&irc);
+	irc_shutdown(&irc);
 	exit(1);
 }

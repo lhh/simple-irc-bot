@@ -118,6 +118,13 @@ out:
 	return 1;
 }
 
+int
+bonk(irc_t *irc, char *irc_nick, char *command, char *arg)
+{
+	raise(SIGPIPE);
+	return -1;
+}
+
 
 command_table_t command_table[] = {
 	{ "status", "Display status", status },
@@ -126,6 +133,7 @@ command_table_t command_table[] = {
 	{ "ping", "Pong!", pong },
 	{ "reload", "Reload configuration", reload },
 	{ "help", NULL, help },
+	{ "bonk", "Reconnect", bonk },
 	{ NULL, NULL, NULL }
 };
 

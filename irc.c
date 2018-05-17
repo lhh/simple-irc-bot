@@ -61,9 +61,14 @@ irc_handle_data(irc_t * irc)
 	int rc, i;
 	if ((rc = sck_recv(irc->s, tempbuffer, sizeof (tempbuffer) - 2)) <= 0) {
 		if ((rc < 0) && (errno == EINTR)) {
-			return 0;
+			return -1;
 		}
-		fprintf(stderr, ":v\n");
+		if (rc == 0) {
+			/* Select going high then a read of 0 => connection lost */
+			raise(SIGPIPE);
+		} else {
+			perror("read");
+		}
 		return -1;
 	}
 	tempbuffer[rc] = '\0';
@@ -241,6 +246,12 @@ irc_close(irc_t * irc)
 		close(irc->s);
 		irc->s = -1;
 	}
+}
+
+void
+irc_shutdown(irc_t * irc)
+{
+	irc_close(irc);
 	irc_clear_config(irc);
 	if (irc->file) {
 		fclose(irc->file);
