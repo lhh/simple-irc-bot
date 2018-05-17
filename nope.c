@@ -16,13 +16,9 @@ read_nopes(irc_t *irc, config_object_t *c)
 	int count = 0;
 	int id = 0;
 
-	while (1) {
-		snprintf(req, sizeof(req), "nopes/@message[%d]", count+1);
-		if (sc_get(c, req, value, sizeof(value)) != 0) {
-			break;
-		}
-		count++;
-	}
+	if (sc_get(c, "nopes/@#message", value, sizeof(value)) != 0)
+		return;
+	count = atoi(value);
 
 	/* NULL terminated list */
 	nopes = malloc(sizeof(char *) * (count + 1));
