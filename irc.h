@@ -58,4 +58,8 @@ int irc_topic(int s, const char *channel, const char *data);
 int irc_action(int s, const char *channel, const char *data);
 int irc_msg(int s, const char *channel, const char *data);
 
+/* strutil.c */
+char **strsplit2(const char *, const char *, void *, size_t);
+char **strsplit(const char *, const char *);
+
 #endif				/*  */

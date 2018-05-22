@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <malloc.h>
 
 typedef struct {
 	char *name;
@@ -141,25 +142,27 @@ command_table_t command_table[] = {
 int
 process_command(irc_t *irc, char *irc_nick, char *msg)
 {
+	char **words;
 	char *command;
 	char *arg;
-	int x;
+	int x, ret;
 
-	// Gets command
-	command = strtok(msg, " ");
-	arg = strtok(NULL, "");
-	if (arg != NULL)
-		while (*arg == ' ')
-			arg++;
+	words = strsplit(msg, " \t");
+	command = words[0];
 	if (command == NULL)
 		return 0;
+	arg = words[1];
 
 	for (x = 0; command_table[x].name != NULL; x++) {
 		if (strcmp(command, command_table[x].name))
 			continue;
-		return command_table[x].func(irc, irc_nick, command, arg);
+		ret = command_table[x].func(irc, irc_nick, command, arg);
+		goto out;
 	}
 
-	return external_command(irc, irc_nick, command, arg);
+	ret = external_command(irc, irc_nick, command, arg);
+out:
+	free(words);
+	return ret;
 }
 
