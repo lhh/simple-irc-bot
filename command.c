@@ -10,16 +10,17 @@
 typedef struct {
 	char *name;
 	char *help;
-	int (*func)(irc_t *, char *, char *, char *);
+	int (*func)(irc_t *, char *, char **);
 } command_table_t;
 
 command_table_t command_table[];
 
-int external_command(irc_t *irc, char *irc_nick, char *command, char *arg);
+int external_command(irc_t *irc, char *irc_nick, char **argv);
 
 int
-version(irc_t *irc, char *irc_nick, char *command, char *arg)
+version(irc_t *irc, char *irc_nick, char **argv)
 {
+
 	if (irc_msg(irc->s, irc->channel, _version_) < 0)
 		return -1;
 	return 1;
@@ -27,7 +28,7 @@ version(irc_t *irc, char *irc_nick, char *command, char *arg)
 
 
 int
-pong(irc_t *irc, char *irc_nick, char *command, char *arg)
+pong(irc_t *irc, char *irc_nick, char **argv)
 {
 	if (irc_msg(irc->s, irc->channel, "pong") < 0)
 		return -1;
@@ -36,7 +37,7 @@ pong(irc_t *irc, char *irc_nick, char *command, char *arg)
 
 
 int
-reload(irc_t *irc, char *irc_nick, char *command, char *arg)
+reload(irc_t *irc, char *irc_nick, char **argv)
 {
 	raise(SIGHUP);
 	return 1;
@@ -44,16 +45,36 @@ reload(irc_t *irc, char *irc_nick, char *command, char *arg)
 
 
 int
-echo(irc_t *irc, char *irc_nick, char *command, char *arg)
+echo(irc_t *irc, char *irc_nick, char **argv)
 {
-	if (irc_msg(irc->s, irc->channel, arg) < 0)
+	char buf[256];
+	char *command = argv[0];
+	int max, x;
+
+	memset(buf, 0, sizeof(buf));
+
+	if (!argv[1]) {
+		snprintf(buf, sizeof(buf), "%s: %s what?", command, irc_nick);
+	} else {
+		x = snprintf(buf, sizeof(buf), "%s: ", irc_nick);
+		max = sizeof(buf) - x - 1;
+		x = 1;
+		while (argv[x] && max > strlen(argv[x])+2) {
+			strcat(buf, argv[x]);
+			strcat(buf, " ");
+			max -= (strlen(argv[x]) + 1);
+			x++;
+		}
+	}
+
+	if (irc_msg(irc->s, irc->channel, buf) < 0)
 		return -1;
 	return 1;
 }
 
 
 int
-status(irc_t *irc, char *irc_nick, char *command, char *arg)
+status(irc_t *irc, char *irc_nick, char **argv)
 {
 	char buf[256];
 	if (irc->task.pid) {
@@ -70,8 +91,9 @@ status(irc_t *irc, char *irc_nick, char *command, char *arg)
 }
 
 int
-help(irc_t *irc, char *irc_nick, char *command, char *arg)
+help(irc_t *irc, char *irc_nick, char **argv)
 {
+	char *arg = argv[1];
 	char buf[512];
 	char buf2[128];
 	int x;
@@ -120,7 +142,7 @@ out:
 }
 
 int
-bonk(irc_t *irc, char *irc_nick, char *command, char *arg)
+bonk(irc_t *irc, char *irc_nick, char **argv)
 {
 	raise(SIGPIPE);
 	return -1;
@@ -144,23 +166,21 @@ process_command(irc_t *irc, char *irc_nick, char *msg)
 {
 	char **words;
 	char *command;
-	char *arg;
 	int x, ret;
 
 	words = strsplit(msg, " \t");
 	command = words[0];
 	if (command == NULL)
 		return 0;
-	arg = words[1];
 
 	for (x = 0; command_table[x].name != NULL; x++) {
 		if (strcmp(command, command_table[x].name))
 			continue;
-		ret = command_table[x].func(irc, irc_nick, command, arg);
+		ret = command_table[x].func(irc, irc_nick, words);
 		goto out;
 	}
 
-	ret = external_command(irc, irc_nick, command, arg);
+	ret = external_command(irc, irc_nick, words);
 out:
 	free(words);
 	return ret;

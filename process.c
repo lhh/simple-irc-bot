@@ -75,8 +75,9 @@ process_done(irc_t *irc)
 
 
 void
-run_process(irc_t *irc, char *irc_nick, command_t *cmd, char *arg)
+run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 {
+	char *arg = argv[1];
 	char cmdline[512];
 	regex_t rx;
 	int pid;
@@ -194,8 +195,9 @@ out:
 
 
 int
-external_command(irc_t *irc, char *irc_nick, char *command, char *arg)
+external_command(irc_t *irc, char *irc_nick, char **argv)
 {
+	char *command = argv[0];
 	int s, user_valid = 0, n;
 
 	/* TODO - move this to another function */
@@ -213,7 +215,7 @@ external_command(irc_t *irc, char *irc_nick, char *command, char *arg)
 	for (s = 0; irc->commands[s].name[0]; s++) {
 		if (strcmp(command, irc->commands[s].name))
 			continue;
-		run_process(irc, irc_nick, &irc->commands[s], arg);
+		run_process(irc, irc_nick, &irc->commands[s], argv);
 		return 1;
 	}
 out:
