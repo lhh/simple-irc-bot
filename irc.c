@@ -60,15 +60,22 @@ irc_handle_data(irc_t * irc)
 	char tempbuffer[512];
 	int rc, i;
 	if ((rc = sck_recv(irc->s, tempbuffer, sizeof (tempbuffer) - 2)) <= 0) {
-		if ((rc < 0) && (errno == EINTR)) {
-			return -1;
-		}
 		if (rc == 0) {
 			/* Select going high then a read of 0 => connection lost */
 			raise(SIGPIPE);
-		} else {
-			perror("read");
 		}
+		switch(errno) {
+			case EINTR:
+				return -1;
+			case ETIMEDOUT:
+				/* send a ping to the server to see
+			   	if the connection is still alive */
+				if (irc_ping(irc->s, irc->server) < 0) {
+					break;
+				}
+				return 0;
+		}
+		perror("read");
 		return -1;
 	}
 	tempbuffer[rc] = '\0';
@@ -126,22 +133,26 @@ irc_parse_action(irc_t * irc)
 
 	// Parses IRC message that pulls out nick and message. 
 	// Checks if we have non-message string
-	if (strchr(irc->servbuf, 1) != NULL)
-		return 0;
 	if (irc->servbuf[0] != ':')
 		return 0;
 
-	ptr = strtok(irc->servbuf, "!");
-	if (ptr == NULL) {
-		printf("ptr == NULL\n");
-		return 0;
+	ptr = NULL;
+	if (strchr(irc->servbuf, '!')) {
+		ptr = strtok(irc->servbuf, "!");
 	}
 
-	else {
+	irc_nick[0] = 0;
+	if (ptr) {
 		strncpy(irc_nick, &ptr[1], 127);
 		irc_nick[127] = '\0';
+	} else {
+		ptr = strtok(irc->servbuf, " ");
 	}
+
 	while ((ptr = strtok(NULL, " ")) != NULL) {
+		if (strcmp(ptr, "PONG") == 0) {
+			return 0;
+		}
 		if (strcmp(ptr, "PRIVMSG") == 0) {
 			privmsg = 1;
 			break;
@@ -257,6 +268,13 @@ irc_shutdown(irc_t * irc)
 		fclose(irc->file);
 		irc->file = (FILE *)NULL;
 	}
+}
+
+// irc_ping: For answering pong requests...
+int
+irc_ping(int s, const char *data)
+{
+	return sck_sendf(s, "PING %s\r\n", data);
 }
 
 // irc_pong: For answering pong requests...

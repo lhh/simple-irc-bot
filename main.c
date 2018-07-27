@@ -3,6 +3,7 @@
 #include <simpleconfig.h>
 #include <signal.h>
 #include <unistd.h>
+#include <string.h>
 
 void read_acls(irc_t *, config_object_t *);
 void read_commands(irc_t *irc, config_object_t *c);
@@ -84,6 +85,7 @@ reload:
 		fprintf(stderr, "No host specified in %s\n", argv[1]);
 		goto exit_err;
 	}
+	strncpy(irc.server, server, sizeof(irc.server));
 
 	if (sc_get(sc, "server/@channel", channel, sizeof(channel)) != 0) {
 		goto exit_err;

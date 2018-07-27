@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <netdb.h>
@@ -90,14 +91,21 @@ sck_sendf(int s, const char *fmt, ...)
 int
 sck_recv(int s, char *buffer, size_t size)
 {
+	struct timeval tv;
 	fd_set rfds;
 	int rc;
 
+	tv.tv_sec = 600;
+	tv.tv_usec = 0;
 	FD_ZERO(&rfds);
 	FD_SET(s, &rfds);
-	rc = select(s+1, &rfds, NULL, NULL, NULL);
+	rc = select(s+1, &rfds, NULL, NULL, &tv);
 	if (rc < 0)
 		return -1;
+	if (rc == 0) {
+		errno = ETIMEDOUT;
+		return -1;
+	}
 
 	return read(s, buffer, size);
 }

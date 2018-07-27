@@ -25,6 +25,7 @@ typedef struct {
 	char **users;
 	command_t *commands;
 	char **nopes;
+	char server[64];
 	char channel[256];
 	char servbuf[512];
 	bot_task_t task;
@@ -47,6 +48,7 @@ void irc_shutdown(irc_t * irc);
 void irc_close(irc_t * irc);
 
 // IRC Protocol
+int irc_ping(int s, const char *data);
 int irc_pong(int s, const char *pong);
 int irc_reg(int s, const char *nick, const char *username,
 	    const char *fullname);
