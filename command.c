@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <time.h>
 #include <malloc.h>
 
 typedef struct {
@@ -77,10 +78,12 @@ int
 status(irc_t *irc, char *irc_nick, char **argv)
 {
 	char buf[256];
+
 	if (irc->task.pid) {
-		snprintf(buf, sizeof(buf), "%s: Running %s (pid %d) for %s",
+		snprintf(buf, sizeof(buf),
+                         "%s: Running \'%s\' (pid %d) for %s; %ld seconds elapsed",
 			 irc_nick, irc->task.task, irc->task.pid,
-			 irc->task.user);
+			 irc->task.user, time(NULL) - irc->task.start_time);
 	} else {
 		snprintf(buf, sizeof(buf), "%s: Not doing anything.",
 		         irc_nick);

@@ -151,7 +151,8 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 	if (pid > 0) {
 		/* record who did what */
 		snprintf(irc->task.user, sizeof(irc->task.user), irc_nick);
-		snprintf(irc->task.task, sizeof(irc->task.task), cmd->name);
+		snprintf(irc->task.task, sizeof(irc->task.task), cmdline);
+		irc->task.start_time = time(NULL);
 		irc->task.pid = pid;
 		irc->task.fd = -1;
 		if (!capture) {

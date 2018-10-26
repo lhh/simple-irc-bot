@@ -2,10 +2,12 @@
 #define __IRC_H
 
 #include <stdio.h>
+#include <time.h>
 
 typedef struct {
 	char task[64];
 	char user[64];
+	time_t start_time;
 	int pid;
 	int fd;
 } bot_task_t;
