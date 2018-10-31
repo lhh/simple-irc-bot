@@ -115,7 +115,10 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 			regcomp(&rx, "^[a-zA-Z0-9_,\\.\\-]+$", REG_EXTENDED);
 		}
 
-		if (regexec(&rx, arg, 0, NULL, 0)) {
+		pid = regexec(&rx, arg, 0, NULL, 0);
+		regfree(&rx);
+
+		if (pid) {
 			snprintf(cmdline, sizeof(cmdline), "%s: Value to \'%s\' was invalid",
 				 irc_nick, cmd->name);
 			irc_msg(irc->s, irc->channel, cmdline);
@@ -191,7 +194,7 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 	return;
 out:
 	/* parent */
-	regfree(&rx);
+	return;
 }
 
 
