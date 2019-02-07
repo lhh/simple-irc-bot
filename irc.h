@@ -18,6 +18,7 @@ typedef struct {
 	char action[256];
 	char help[256];
 	int capture;		/* capture output */
+	int anon;		/* anonymous command */
 } command_t;
 
 

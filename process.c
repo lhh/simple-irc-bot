@@ -211,14 +211,15 @@ external_command(irc_t *irc, char *irc_nick, char **argv)
 		if (!strcmp(irc_nick, irc->users[n]))
 			user_valid = 1;
 	}
-	if (!user_valid) {
-		printf("Invalid user: %s\n", irc_nick);
-		goto out;
-	}
 
 	for (s = 0; irc->commands[s].name[0]; s++) {
 		if (strcmp(command, irc->commands[s].name))
 			continue;
+		if (!user_valid && !irc->commands[s].anon) {
+			printf("Invalid user: %s\n", irc_nick);
+			goto out;
+		}
+
 		run_process(irc, irc_nick, &irc->commands[s], argv);
 		return 1;
 	}
@@ -273,6 +274,14 @@ read_commands(irc_t *irc, config_object_t *c)
 			if (atoi(value) > 0 || strcasecmp(value, "yes") || strcasecmp(value, "true")) {
 				//printf("Capturing for %s (%s)\n", commands[id].name, value);
 				commands[idx-1].capture = 1;
+			}
+		}
+		snprintf(req, sizeof(req), "commands/command[%d]/@anon", id+1);
+		commands[id].anon = 0;
+		if (sc_get(c, req, value, sizeof(value)) == 0) {
+			if (atoi(value) > 0 || strcasecmp(value, "yes") || strcasecmp(value, "true")) {
+				//printf("Capturing for %s (%s)\n", commands[id].name, value);
+				commands[idx-1].anon = 1;
 			}
 		}
 		snprintf(req, sizeof(req), "commands/command[%d]/@regex", id+1);
