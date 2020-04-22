@@ -169,7 +169,13 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 
 		/* record who did what */
 		snprintf(task->task.user, sizeof(task->task.user), irc_nick);
-		snprintf(task->task.task, sizeof(task->task.task), cmdline);
+		if (arg) {
+			snprintf(task->task.task, sizeof(task->task.task), "%s %s",
+				 cmd->name, arg);
+		} else {
+			snprintf(task->task.task, sizeof(task->task.task), "%s",
+				 cmd->name);
+		}
 		task->task.start_time = time(NULL);
 		task->task.pid = pid;
 		task->task.fd = -1;
