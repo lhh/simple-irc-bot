@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <time.h>
 
+#include <list.h>
+
 typedef struct {
 	char task[64];
 	char user[64];
@@ -21,6 +23,10 @@ typedef struct {
 	int anon;		/* anonymous command */
 } command_t;
 
+typedef struct {
+	list_head();
+	bot_task_t task;
+} task_node_t;
 
 typedef struct {
 	FILE *file;
@@ -31,7 +37,7 @@ typedef struct {
 	char server[64];
 	char channel[256];
 	char servbuf[512];
-	bot_task_t task;
+	task_node_t *tasks;
 	int bufptr;
 	int s;
 	int c_nope;

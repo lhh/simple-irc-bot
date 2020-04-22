@@ -23,28 +23,44 @@ process_done(irc_t *irc)
 	char msg[4096];
 	char *c, *p;
 	int status, ret;
-	int capture = 0;
+	int capture = 0, x;
+	task_node_t *t = NULL;
 
-	if (!irc->task.pid) {
+	if (!irc->tasks) {
 		return 0;
 	}
 
-	ret = waitpid(irc->task.pid, &status, WNOHANG);
-	if (ret != irc->task.pid) {
+	ret = waitpid(-1, &status, WNOHANG);
+	if (ret < 0) {
 		return 0;
 	}
 
-	if (irc->task.fd >= 0) {
+	list_for(&irc->tasks, t, x) {
+		if (t->task.pid == ret) {
+			ret = 0;
+			break;
+		}
+	}
+
+	if (ret != 0) {
+		/* couldn't find one? */
+		printf("XXX Woke up but no processes?\n");
+		return 0;
+	}
+
+	list_remove(&irc->tasks, t);
+
+	if (t->task.fd >= 0) {
 		memset(output, 0, sizeof(output));
-		ret = read(irc->task.fd, output, sizeof(output)-1);
+		ret = read(t->task.fd, output, sizeof(output)-1);
 		if (ret < 0) {
 			perror("read");
 		}
 		if (ret > 0) {
 			capture = 1;
 		}
-		close(irc->task.fd);
-		irc->task.fd = -1;
+		close(t->task.fd);
+		t->task.fd = -1;
 	}
 
 	if (capture) {
@@ -52,24 +68,24 @@ process_done(irc_t *irc)
 		while ((c = strchr(p, '\n'))) {
 			*c = 0;
 			if (strlen(p)) {
-				snprintf(msg, sizeof(msg), "%s: %s", irc->task.user,
+				snprintf(msg, sizeof(msg), "%s: %s", t->task.user,
 					 p);
  				irc_msg(irc->s, irc->channel, msg);
 			}
 			p = c+1;
 		}
 		if (strlen(p)) {
-			snprintf(msg, sizeof(msg), "%s: %s", irc->task.user,
+			snprintf(msg, sizeof(msg), "%s: %s", t->task.user,
 				 p);
  			irc_msg(irc->s, irc->channel, msg);
 		}
 	} else {
 		snprintf(msg, sizeof(msg), "%s: %s complete, return code %d",
-			 irc->task.user, irc->task.task, WEXITSTATUS(status));
+			 t->task.user, t->task.task, WEXITSTATUS(status));
  		irc_msg(irc->s, irc->channel, msg);
 	}
 
-	memset(&irc->task, 0, sizeof(irc->task));
+	free(t);
 	return 0;
 }
 
@@ -84,15 +100,11 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 	int fd;
 	int capture = cmd->capture;
 	int p[2];
-
-	if (irc->task.pid) {
-		snprintf(cmdline, sizeof(cmdline), "%s: I am busy doing %s for %s\n",
-			 irc_nick, irc->task.task, irc->task.user);
-		irc_msg(irc->s, irc->channel, cmdline);
-		return;
-	}
+	task_node_t *task = NULL;
 
 	//printf("Capture: %d\n", capture);
+
+	
 
 	if (strstr(cmd->action, "%s")) {
 		if (arg == NULL) {
@@ -152,18 +164,21 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 	}
 
 	if (pid > 0) {
+		task = malloc(sizeof(*task));
+		memset(task, 0, sizeof(*task));
+
 		/* record who did what */
-		snprintf(irc->task.user, sizeof(irc->task.user), irc_nick);
-		snprintf(irc->task.task, sizeof(irc->task.task), cmdline);
-		irc->task.start_time = time(NULL);
-		irc->task.pid = pid;
-		irc->task.fd = -1;
+		snprintf(task->task.user, sizeof(task->task.user), irc_nick);
+		snprintf(task->task.task, sizeof(task->task.task), cmdline);
+		task->task.start_time = time(NULL);
+		task->task.pid = pid;
+		task->task.fd = -1;
 		if (!capture) {
 			snprintf(cmdline, sizeof(cmdline), "%s: %s started",
 				 irc_nick, cmd->name);
 			irc_msg(irc->s, irc->channel, cmdline);
 		} else {
-			irc->task.fd = p[0];
+			task->task.fd = p[0];
 			close(p[1]);
 		}
 		goto out;
@@ -193,6 +208,8 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 	/* notreached */
 	return;
 out:
+	if (task)
+		list_insert(&irc->tasks, task);
 	/* parent */
 	return;
 }

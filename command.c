@@ -78,18 +78,25 @@ int
 status(irc_t *irc, char *irc_nick, char **argv)
 {
 	char buf[256];
+	task_node_t *t;
+	int x;
 
-	if (irc->task.pid) {
-		snprintf(buf, sizeof(buf),
-                         "%s: Running \'%s\' (pid %d) for %s; %ld seconds elapsed",
-			 irc_nick, irc->task.task, irc->task.pid,
-			 irc->task.user, time(NULL) - irc->task.start_time);
+	if (irc->tasks) {
+		list_for(&irc->tasks, t, x) {
+			snprintf(buf, sizeof(buf),
+                         	"%s: PID%d for %s: \"%s\", %ld sec",
+				irc_nick, t->task.pid,
+				t->task.user,
+				t->task.task,
+				time(NULL) - t->task.start_time);
+			irc_msg(irc->s, irc->channel, buf);
+		}
 	} else {
 		snprintf(buf, sizeof(buf), "%s: Not doing anything.",
 		         irc_nick);
+		if (irc_msg(irc->s, irc->channel, buf) < 0)
+			return -1;
 	}
-	if (irc_msg(irc->s, irc->channel, buf) < 0)
-		return -1;
 	return 1;
 }
 
@@ -150,7 +157,6 @@ bonk(irc_t *irc, char *irc_nick, char **argv)
 	raise(SIGPIPE);
 	return -1;
 }
-
 
 command_table_t command_table[] = {
 	{ "status", "Display status", status },
