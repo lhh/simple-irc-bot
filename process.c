@@ -228,14 +228,14 @@ external_command(irc_t *irc, char *irc_nick, char **argv)
 	int s, user_valid = 0, n;
 
 	/* TODO - move this to another function */
-	for (n = 0; irc->users[n] != NULL; n++) {
+	for (n = 0; irc->users && irc->users[n] != NULL; n++) {
 		/* Meh, easy to spoof - use only on IRC
 		   servers with authentication */
 		if (!strcmp(irc_nick, irc->users[n]))
 			user_valid = 1;
 	}
 
-	for (s = 0; irc->commands[s].name[0]; s++) {
+	for (s = 0; irc->commands && irc->commands[s].name[0]; s++) {
 		if (strcmp(command, irc->commands[s].name))
 			continue;
 		if (!user_valid && !irc->commands[s].anon) {
