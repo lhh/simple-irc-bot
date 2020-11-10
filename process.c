@@ -90,30 +90,47 @@ process_done(irc_t *irc)
 }
 
 
+int
+arg_count(char *action)
+{
+	char *s = action;
+	int ret = 0;
+
+	while ((s = strstr(s, "%s")) != NULL) {
+		ret++;
+		s += 2;
+	}
+
+	return ret;
+}
+
+
 void
 run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 {
-	char *arg = argv[1];
+	char *arg;
 	char cmdline[512];
 	regex_t rx;
 	int pid;
 	int fd;
+        int rargs = 0;
+        int argc = 0;
 	int capture = cmd->capture;
 	int p[2];
 	task_node_t *task = NULL;
 
 	//printf("Capture: %d\n", capture);
+	rargs = arg_count(cmd->action);
+	for (; argv[argc+1]; argc++);
+	if (rargs && (rargs != argc)) {
+		snprintf(cmdline, sizeof(cmdline), "%s: \'%s\' requires %d argument(s); %d provided",
+			irc_nick, cmd->name, rargs, argc);
+		irc_msg(irc->s, irc->channel, cmdline);
+		return;
+	}
 
-	
-
+	arg = argv[1];
 	if (strstr(cmd->action, "%s")) {
-		if (arg == NULL) {
-			snprintf(cmdline, sizeof(cmdline), "%s: \'%s\' requires an argument",
-				irc_nick, cmd->name);
-			irc_msg(irc->s, irc->channel, cmdline);
-			return;
-		}
-
 		/* printf("command: %s arg: \'%s\'\n", cmd->name, arg); */
 		if (strlen(cmd->regex)) {
 			if (regcomp(&rx, cmd->regex, REG_EXTENDED) != 0) {
