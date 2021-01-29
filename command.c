@@ -55,9 +55,9 @@ echo(irc_t *irc, char *irc_nick, char **argv)
 	memset(buf, 0, sizeof(buf));
 
 	if (!argv[1]) {
-		snprintf(buf, sizeof(buf), "%s: %s what?", command, irc_nick);
+		snprintf(buf, sizeof_safe(buf), "%s: %s what?", command, irc_nick);
 	} else {
-		x = snprintf(buf, sizeof(buf), "%s: ", irc_nick);
+		x = snprintf(buf, sizeof_safe(buf), "%s: ", irc_nick);
 		max = sizeof(buf) - x - 1;
 		x = 1;
 		while (argv[x] && max > strlen(argv[x])+2) {
@@ -83,7 +83,7 @@ status(irc_t *irc, char *irc_nick, char **argv)
 
 	if (irc->tasks) {
 		list_for(&irc->tasks, t, x) {
-			snprintf(buf, sizeof(buf),
+			snprintf(buf, sizeof_safe(buf),
                          	"%s: PID%d for %s: \"%s\", %ld sec",
 				irc_nick, t->task.pid,
 				t->task.user,
@@ -92,7 +92,7 @@ status(irc_t *irc, char *irc_nick, char **argv)
 			irc_msg(irc->s, irc->channel, buf);
 		}
 	} else {
-		snprintf(buf, sizeof(buf), "%s: Not doing anything.",
+		snprintf(buf, sizeof_safe(buf), "%s: Not doing anything.",
 		         irc_nick);
 		if (irc_msg(irc->s, irc->channel, buf) < 0)
 			return -1;
@@ -109,14 +109,14 @@ help(irc_t *irc, char *irc_nick, char **argv)
 	int x;
 
 	if (arg == NULL || strlen(arg) == 0) {
-		snprintf(buf, sizeof(buf), "%s:", irc_nick);
+		snprintf(buf, sizeof_safe(buf), "%s:", irc_nick);
 		for (x = 0; command_table[x].name != NULL; x++) {
-			snprintf(buf2, sizeof(buf2), " %s", command_table[x].name);
+			snprintf(buf2, sizeof_safe(buf2), " %s", command_table[x].name);
 			strncat(buf, buf2, sizeof(buf) - (strlen(buf) + 1 + strlen(buf2)));
 		}
 	
 		for (x = 0; strlen(irc->commands[x].name); x++) {
-			snprintf(buf2, sizeof(buf2), " %s", irc->commands[x].name);
+			snprintf(buf2, sizeof_safe(buf2), " %s", irc->commands[x].name);
 			strncat(buf, buf2, sizeof(buf) - (strlen(buf) + 1 + strlen(buf2)));
 		}
 		goto out;
@@ -126,10 +126,10 @@ help(irc_t *irc, char *irc_nick, char **argv)
 		if (strcmp(arg, command_table[x].name))
 			continue;
 		if (command_table[x].help == NULL) {
-			snprintf(buf, sizeof(buf), "%s: No help for '%s'", irc_nick, arg);
+			snprintf(buf, sizeof_safe(buf), "%s: No help for '%s'", irc_nick, arg);
 			goto out;
 		}
-		snprintf(buf, sizeof(buf), "%s: %s", irc_nick, command_table[x].help);
+		snprintf(buf, sizeof_safe(buf), "%s: %s", irc_nick, command_table[x].help);
 		goto out;
 	}
 
@@ -137,14 +137,14 @@ help(irc_t *irc, char *irc_nick, char **argv)
 		if (strcmp(arg, irc->commands[x].name))
 			continue;
 		if (strlen(irc->commands[x].help) == 0) {
-			snprintf(buf, sizeof(buf), "%s: No help for '%s'", irc_nick, arg);
+			snprintf(buf, sizeof_safe(buf), "%s: No help for '%s'", irc_nick, arg);
 			goto out;
 		}
-		snprintf(buf, sizeof(buf), "%s: %s", irc_nick, irc->commands[x].help);
+		snprintf(buf, sizeof_safe(buf), "%s: %s", irc_nick, irc->commands[x].help);
 		goto out;
 	}
 
-	snprintf(buf, sizeof(buf), "%s: Command not found", irc_nick);
+	snprintf(buf, sizeof_safe(buf), "%s: Command not found", irc_nick);
 out:
 	if (irc_msg(irc->s, irc->channel, buf) < 0)
 		return -1;

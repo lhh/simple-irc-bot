@@ -191,9 +191,9 @@ irc_reply_message(irc_t * irc, char *irc_nick, char *msg)
 	char buf[256];
 	int s;
 
-	s = snprintf(buf, sizeof(buf)-1, "%s: ", irc->nick);
+	s = snprintf(buf, sizeof_safe(buf), "%s: ", irc->nick);
         if (strncmp(msg, buf, s) != 0) {
-		s = snprintf(buf, sizeof(buf)-1, "%s, ", irc->nick);
+		s = snprintf(buf, sizeof_safe(buf), "%s, ", irc->nick);
 		if (strncmp(msg, buf, s) != 0) {
 			return 0;
 		}

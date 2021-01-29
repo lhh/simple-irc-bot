@@ -6,6 +6,8 @@
 
 #include <list.h>
 
+#define sizeof_safe(x) (sizeof(x) - 1)
+
 typedef struct {
 	char task[64];
 	char user[64];

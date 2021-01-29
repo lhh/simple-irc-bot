@@ -27,7 +27,7 @@ read_nopes(irc_t *irc, config_object_t *c)
 	irc->nopes = nopes;
 
 	for (id = 0; id < count; id++) {
-		snprintf(req, sizeof(req), "nopes/@message[%d]", id+1);
+		snprintf(req, sizeof_safe(req), "nopes/@message[%d]", id+1);
 		if (sc_get(c, req, value, sizeof(value)) != 0) {
 			break;
 		}
@@ -47,15 +47,15 @@ nope(irc_t *irc, char *nick)
 	int r;
 
 	if (irc->c_nope <= 0) {
-		snprintf(msg, sizeof(msg), "%s: No.", nick);
+		snprintf(msg, sizeof_safe(msg), "%s: No.", nick);
 		goto out;
 	}
 
 	r = (rand() % irc->c_nope);
 	if (strstr(irc->nopes[r], "%s")) {
-		snprintf(msg, sizeof(msg), irc->nopes[r], nick);
+		snprintf(msg, sizeof_safe(msg), irc->nopes[r], nick);
 	} else {
-		snprintf(msg, sizeof(msg), irc->nopes[r]);
+		snprintf(msg, sizeof_safe(msg), irc->nopes[r]);
 	}
 out:
 	return irc_msg(irc->s, irc->channel, msg);

@@ -92,11 +92,11 @@ reload:
 	}
 
 	if (sc_get(sc, "server/@port", port, sizeof(port)) != 0) {
-		snprintf(port, sizeof(port)-1, "6667");
+		snprintf(port, sizeof_safe(port), "6667");
 	}
 
 	if (sc_get(sc, "server/@nick", nick, sizeof(nick)) != 0) {
-		snprintf(nick, sizeof(nick)-1, "laas");
+		snprintf(nick, sizeof_safe(nick), "laas");
 	}
 
 	read_acls(&irc, sc);

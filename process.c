@@ -68,19 +68,19 @@ process_done(irc_t *irc)
 		while ((c = strchr(p, '\n'))) {
 			*c = 0;
 			if (strlen(p)) {
-				snprintf(msg, sizeof(msg), "%s: %s", t->task.user,
+				snprintf(msg, sizeof_safe(msg), "%s: %s", t->task.user,
 					 p);
  				irc_msg(irc->s, irc->channel, msg);
 			}
 			p = c+1;
 		}
 		if (strlen(p)) {
-			snprintf(msg, sizeof(msg), "%s: %s", t->task.user,
+			snprintf(msg, sizeof_safe(msg), "%s: %s", t->task.user,
 				 p);
  			irc_msg(irc->s, irc->channel, msg);
 		}
 	} else {
-		snprintf(msg, sizeof(msg), "%s: %s complete, return code %d",
+		snprintf(msg, sizeof_safe(msg), "%s: %s complete, return code %d",
 			 t->task.user, t->task.task, WEXITSTATUS(status));
  		irc_msg(irc->s, irc->channel, msg);
 	}
@@ -123,7 +123,7 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 	rargs = arg_count(cmd->action);
 	for (; argv[argc+1]; argc++);
 	if (rargs && (rargs != argc)) {
-		snprintf(cmdline, sizeof(cmdline), "%s: \'%s\' requires %d argument(s); %d provided",
+		snprintf(cmdline, sizeof_safe(cmdline), "%s: \'%s\' requires %d argument(s); %d provided",
 			irc_nick, cmd->name, rargs, argc);
 		irc_msg(irc->s, irc->channel, cmdline);
 		return;
@@ -134,7 +134,7 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 		/* printf("command: %s arg: \'%s\'\n", cmd->name, arg); */
 		if (strlen(cmd->regex)) {
 			if (regcomp(&rx, cmd->regex, REG_EXTENDED) != 0) {
-				snprintf(cmdline, sizeof(cmdline), "%s: Config regex error\n",
+				snprintf(cmdline, sizeof_safe(cmdline), "%s: Config regex error\n",
 					irc_nick);
 				irc_msg(irc->s, irc->channel, cmdline);
 				return;
@@ -148,14 +148,14 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 		regfree(&rx);
 
 		if (pid) {
-			snprintf(cmdline, sizeof(cmdline), "%s: Value to \'%s\' was invalid",
+			snprintf(cmdline, sizeof_safe(cmdline), "%s: Value to \'%s\' was invalid",
 				 irc_nick, cmd->name);
 			irc_msg(irc->s, irc->channel, cmdline);
 			goto out;
 		}
-		snprintf(cmdline, sizeof(cmdline)-1, cmd->action, arg);
+		snprintf(cmdline, sizeof_safe(cmdline), cmd->action, arg);
 	} else {
-		snprintf(cmdline, sizeof(cmdline)-1, cmd->action);
+		snprintf(cmdline, sizeof_safe(cmdline), cmd->action);
 	}
 
 	//printf("Running \'%s\' for %s\n", cmdline, irc_nick);
@@ -185,19 +185,19 @@ run_process(irc_t *irc, char *irc_nick, command_t *cmd, char **argv)
 		memset(task, 0, sizeof(*task));
 
 		/* record who did what */
-		snprintf(task->task.user, sizeof(task->task.user), irc_nick);
+		snprintf(task->task.user, sizeof_safe(task->task.user), irc_nick);
 		if (arg) {
-			snprintf(task->task.task, sizeof(task->task.task), "%s %s",
+			snprintf(task->task.task, sizeof_safe(task->task.task), "%s %s",
 				 cmd->name, arg);
 		} else {
-			snprintf(task->task.task, sizeof(task->task.task), "%s",
+			snprintf(task->task.task, sizeof_safe(task->task.task), "%s",
 				 cmd->name);
 		}
 		task->task.start_time = time(NULL);
 		task->task.pid = pid;
 		task->task.fd = -1;
 		if (!capture) {
-			snprintf(cmdline, sizeof(cmdline), "%s: %s started",
+			snprintf(cmdline, sizeof_safe(cmdline), "%s: %s started",
 				 irc_nick, cmd->name);
 			irc_msg(irc->s, irc->channel, cmdline);
 		} else {
@@ -294,21 +294,21 @@ read_commands(irc_t *irc, config_object_t *c)
 	memset(commands, 0, sizeof(command_t) * (count + 1));
 
 	for (id = 0; id < count; id++) {
-		snprintf(req, sizeof(req), "commands/command[%d]/@name", id+1);
+		snprintf(req, sizeof_safe(req), "commands/command[%d]/@name", id+1);
 		if (sc_get(c, req, value, sizeof(value)) != 0) {
 			continue;
 		}
 		++idx;
 		strncpy(commands[idx-1].name, value, sizeof(commands[idx-1].name));
 
-		snprintf(req, sizeof(req), "commands/command[%d]/@action", id+1);
+		snprintf(req, sizeof_safe(req), "commands/command[%d]/@action", id+1);
 		if (sc_get(c, req, commands[idx-1].action, sizeof(commands[id].action)) != 0)
 			/* no action */
 			continue;
 		/* don't care if there's no help */
-		snprintf(req, sizeof(req), "commands/command[%d]/@help", id+1);
+		snprintf(req, sizeof_safe(req), "commands/command[%d]/@help", id+1);
 		sc_get(c, req, commands[idx-1].help, sizeof(commands[id].help));
-		snprintf(req, sizeof(req), "commands/command[%d]/@capture", id+1);
+		snprintf(req, sizeof_safe(req), "commands/command[%d]/@capture", id+1);
 		commands[id].capture = 0;
 		if (sc_get(c, req, value, sizeof(value)) == 0) {
 			if (atoi(value) > 0 || strcasecmp(value, "yes") || strcasecmp(value, "true")) {
@@ -316,7 +316,7 @@ read_commands(irc_t *irc, config_object_t *c)
 				commands[idx-1].capture = 1;
 			}
 		}
-		snprintf(req, sizeof(req), "commands/command[%d]/@anon", id+1);
+		snprintf(req, sizeof_safe(req), "commands/command[%d]/@anon", id+1);
 		commands[id].anon = 0;
 		if (sc_get(c, req, value, sizeof(value)) == 0) {
 			if (atoi(value) > 0 || strcasecmp(value, "yes") || strcasecmp(value, "true")) {
@@ -324,7 +324,7 @@ read_commands(irc_t *irc, config_object_t *c)
 				commands[idx-1].anon = 1;
 			}
 		}
-		snprintf(req, sizeof(req), "commands/command[%d]/@regex", id+1);
+		snprintf(req, sizeof_safe(req), "commands/command[%d]/@regex", id+1);
 		sc_get(c, req, commands[idx-1].regex, sizeof(commands[id].regex));
 	}
 		

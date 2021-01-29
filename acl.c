@@ -31,7 +31,7 @@ read_acls(irc_t *irc, config_object_t *c)
 	memset(users, 0, sizeof(char *) * (count + 1));
 
 	for (id = 0; id < count; id++) {
-		snprintf(req, sizeof(req), "users/user[%d]/@name", id+1);
+		snprintf(req, sizeof_safe(req), "users/user[%d]/@name", id+1);
 		if (sc_get(c, req, value, sizeof(value)))
 			continue;
 		users[idx++] = strdup(value);
